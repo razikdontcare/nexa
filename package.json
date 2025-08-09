@@ -17,6 +17,22 @@
   },
   "homepage": "https://github.com/razikdontcare/nexa#readme",
   "dependencies": {
-    "baileys": "^6.7.18"
+    "axios": "^1.11.0",
+    "baileys": "^6.7.18",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mongoose": "^8.17.1",
+    "qrcode": "^1.5.4",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.2.1",
+    "@types/qrcode": "^1.5.5",
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
   }
 }
