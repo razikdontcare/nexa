@@ -26,9 +26,10 @@ export interface IMessage extends Document {
     | "contact";
   status: "sent" | "delivered" | "read" | "failed" | "received";
   timestamp: Date;
-  metadata?: {
+  meta?: {
     rawRemoteJid?: string;
     rawParticipantJid?: string | null;
+    messageObject?: any;
   };
   createdAt: Date;
 }

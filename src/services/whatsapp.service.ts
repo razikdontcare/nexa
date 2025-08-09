@@ -194,7 +194,7 @@ export class WhatsAppService {
         messageType: "text",
         status: "received",
         timestamp: new Date((msg.messageTimestamp as number) * 1000),
-        metadata: {
+        meta: {
           rawRemoteJid: fromJidRaw,
           rawParticipantJid: msg.key.participant,
         },

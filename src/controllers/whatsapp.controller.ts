@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { WhatsAppService } from "@/services/whatsapp.service";
 import { logger } from "@/utils/logger";
+import QRCode from "qrcode";
 
 export class WhatsAppController {
   static async createSession(req: Request, res: Response): Promise<void> {
@@ -136,6 +137,42 @@ export class WhatsAppController {
       res.status(500).json({
         success: false,
         error: "Failed to get QR code",
+      });
+    }
+  }
+  static async getQRCodeImage(req: Request, res: Response): Promise<void> {
+    try {
+      const { sessionId } = req.params;
+
+      const qrCodeString = await WhatsAppService.getQRCode(sessionId);
+
+      if (!qrCodeString) {
+        res.status(404).json({
+          success: false,
+          error: "QR code not available for this session",
+        });
+        return;
+      }
+
+      const qrCodeBuffer = await QRCode.toBuffer(qrCodeString, {
+        type: "png",
+        width: 300,
+        margin: 2,
+      });
+
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Content-Length", qrCodeBuffer.length);
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader(
+        "Content-Disposition",
+        `inline; filename="qrcode-${sessionId}.png"`
+      );
+      res.send(qrCodeBuffer);
+    } catch (error) {
+      logger.error("Error generating QR code image:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to generate QR code image",
       });
     }
   }

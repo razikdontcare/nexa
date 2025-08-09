@@ -11,6 +11,7 @@ router.delete("/sessions/:sessionId", WhatsAppController.deleteSession);
 router.post("/send", WhatsAppController.sendMessage);
 
 router.get("/sessions/:sessionId/qr", WhatsAppController.getQRCode);
+router.get("/sessions/:sessionId/qr/image", WhatsAppController.getQRCodeImage);
 
 router.get("/sessions/:sessionId/messages", WhatsAppController.getMessages);
 

@@ -264,7 +264,8 @@ export class MongoDBStore {
       }
 
       const messageSaves = messages.map(async (msg) => {
-        if (!msg.key?.remoteJid || !msg.message) return;
+        if (!msg.key?.remoteJid) return;
+
         const fromJidRaw = msg.key.remoteJid;
         const fromJidNormalized = jidNormalizedUser(fromJidRaw);
         const participantJidRaw = msg.key.participant;
@@ -277,18 +278,25 @@ export class MongoDBStore {
           msg.message?.extendedTextMessage?.text ||
           "[Media Message]";
 
-        await MessageModel.create({
-          sessionId: this.sessionId,
-          from: msg.key.fromMe
-            ? "me"
-            : participantJidNormalized || fromJidNormalized,
-          to: msg.key.fromMe ? fromJidNormalized : "me",
-          message: messageContent,
-          messageType: "text",
-          status: msg.key.fromMe ? "sent" : "received",
-          timestamp: new Date((Number(msg.messageTimestamp) || 0) * 1000),
-          messageObject: msg,
-        });
+        // Only save if there's actual message content
+        if (msg.message && messageContent !== "[Media Message]") {
+          await MessageModel.create({
+            sessionId: this.sessionId,
+            from: msg.key.fromMe
+              ? "me"
+              : participantJidNormalized || fromJidNormalized,
+            to: msg.key.fromMe ? fromJidNormalized : "me",
+            message: messageContent,
+            messageType: "text",
+            status: msg.key.fromMe ? "sent" : "received",
+            timestamp: new Date((Number(msg.messageTimestamp) || 0) * 1000),
+            meta: {
+              rawRemoteJid: fromJidRaw,
+              rawParticipantJid: participantJidRaw,
+              // Don't store the full messageObject to avoid Buffer issues
+            },
+          });
+        }
       });
 
       await Promise.all(messageSaves);
@@ -383,17 +391,28 @@ export class MongoDBStore {
       if (!key?.id || !key?.remoteJid) {
         return null;
       }
-      // This is a simplified lookup. You might need a more specific index/query
-      // based on how you store message keys in the Message model.
-      // This example assumes `messageObject.key.id` is queryable or you store `keyId`.
-      return await MessageModel.findOne({
+
+      const messageDoc = await MessageModel.findOne({
         sessionId: this.sessionId,
-        "messageObject.key.id": key.id,
-        "messageObject.key.remoteJid": key.remoteJid,
-        // Or if you added a specific keyId field:
-        // keyId: key.id,
-        // chatJid: jidNormalizedUser(key.remoteJid)
+        "meta.messageObject.key.id": key.id,
+        "meta.messageObject.key.remoteJid": key.remoteJid,
       });
+
+      if (messageDoc && messageDoc.meta?.messageObject) {
+        // Apply Buffer restoration to the message object before returning
+        const restoredMessage = this.restoreBuffers(
+          messageDoc.meta.messageObject
+        );
+        return {
+          ...messageDoc.toObject(),
+          meta: {
+            ...messageDoc.meta,
+            messageObject: restoredMessage,
+          },
+        };
+      }
+
+      return messageDoc;
     } catch (error) {
       logger.error(
         `Error loading message by key ${JSON.stringify(key)} for session ${
@@ -403,5 +422,28 @@ export class MongoDBStore {
       );
       return null;
     }
+  }
+
+  // Helper method to restore Buffer objects from MongoDB
+  private restoreBuffers(obj: any): any {
+    if (!obj || typeof obj !== "object") {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.restoreBuffers(item));
+    }
+
+    // Check if this is a Buffer-like object from MongoDB
+    if (obj.type === "Buffer" && Array.isArray(obj.data)) {
+      return Buffer.from(obj.data);
+    }
+
+    // Recursively process all object properties
+    const restored: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      restored[key] = this.restoreBuffers(value);
+    }
+    return restored;
   }
 }
