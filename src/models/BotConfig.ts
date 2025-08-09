@@ -20,8 +20,6 @@ BotConfigSchema.pre("save", function (next) {
   next();
 });
 
-BotConfigSchema.index({ key: 1 }, { unique: true });
-
 export const BotConfig = mongoose.model<IBotConfig>(
   "BotConfig",
   BotConfigSchema
