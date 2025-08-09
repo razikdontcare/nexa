@@ -7,6 +7,8 @@ import { logger } from "@/utils/logger";
 import { CommandHandler } from "./commandHandler.service";
 import { configService } from "./config.service";
 import { IMessage, ISession } from "@/types";
+import { AuthCreds } from "@/models/AuthCreds";
+import { SignalKey } from "@/models/SignalKey";
 
 export class WhatsAppService {
   private static commandHandler: CommandHandler;
@@ -94,8 +96,36 @@ export class WhatsAppService {
   }
 
   static async deleteSession(sessionId: string): Promise<void> {
-    await Session.findOneAndDelete({ sessionId });
-    WhatsAppConfig.removeInstance(sessionId);
+    try {
+      await Session.findOneAndDelete({ sessionId });
+      logger.info(`Session ${sessionId} deleted successfully.`);
+
+      const deleteAuthCredsResult = await AuthCreds.findOneAndDelete({
+        sessionId,
+      });
+      if (deleteAuthCredsResult) {
+        logger.info(`AuthCreds for session ${sessionId} deleted successfully.`);
+      } else {
+        logger.warn(`No AuthCreds found for session ${sessionId}.`);
+      }
+
+      const deleteSignalKeysResult = await SignalKey.deleteMany({ sessionId });
+      logger.info(
+        `Deleted ${deleteSignalKeysResult.deletedCount} SignalKeys for session ${sessionId}.`
+      );
+
+      const wasRemoved = WhatsAppConfig.removeInstance(sessionId);
+      if (wasRemoved) {
+        logger.info(
+          `WhatsApp instance for session ${sessionId} removed successfully.`
+        );
+      } else {
+        logger.warn(`No WhatsApp instance found for session ${sessionId}.`);
+      }
+    } catch (error) {
+      logger.error(`Failed to delete session ${sessionId}:`, error);
+      throw error;
+    }
   }
 
   static async sendMessage(
