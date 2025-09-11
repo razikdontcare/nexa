@@ -25,13 +25,17 @@ async function convertToWebp(inputBuf: Buffer, animated: boolean): Promise<Buffe
   const inPath = path.join(tmpDir, 'in')
   const outPath = path.join(tmpDir, 'out.webp')
   await fs.writeFile(inPath, inputBuf)
+  // Force a 512x512 canvas with transparent padding.
+  // We scale the media to fit within 512x512 preserving aspect ratio, then pad to center.
+  // For animated inputs: also cap duration and fps to keep size small.
+  const scalePad = 'scale=512:512:force_original_aspect_ratio=decrease,format=rgba,pad=512:512:(ow-iw)/2:(oh-ih)/2:color=0x00000000@0';
   const args = animated
     ? [
         '-y',
         '-i', inPath,
-        // cap duration to 6s, scale and limit fps to keep size reasonable
+        // cap duration to 6s, scale/pad and limit fps to keep size reasonable
         '-t', '6',
-        '-vf', 'scale=512:512:force_original_aspect_ratio=decrease,fps=15',
+        '-vf', `${scalePad},fps=15`,
         '-an',
         '-vcodec', 'libwebp',
         '-loop', '0',
@@ -42,7 +46,7 @@ async function convertToWebp(inputBuf: Buffer, animated: boolean): Promise<Buffe
     : [
         '-y',
         '-i', inPath,
-        '-vf', 'scale=512:512:force_original_aspect_ratio=decrease',
+        '-vf', scalePad,
         '-frames:v', '1',
         '-f', 'webp', outPath,
       ]
@@ -114,14 +118,14 @@ const command: CommandModule = {
   name: 'sticker',
   aliases: ['s', 'stik'],
   summary: 'Convert an image/video (or replied media) to a sticker',
-  usage: '/sticker  (reply to an image/video or send with caption)',
-  examples: ['/sticker'],
+  usage: '{prefix}sticker  (reply to an image/video or send with caption)',
+  examples: ['{prefix}sticker'],
   cooldownMs: 5000,
-  run: async ({ sock, from, reply, message }) => {
+  run: async ({ sock, from, reply, message, chatPrefix }) => {
     try {
       const target = findMedia(message)
       if (!target) {
-        await reply({ text: 'Send an image/video with caption /sticker or reply /sticker to media.' })
+        await reply({ text: `Send an image/video with caption {prefix}sticker or reply {prefix}sticker to media.`.replace(/\{prefix\}/g, chatPrefix) })
         return
       }
       // Download media buffer
