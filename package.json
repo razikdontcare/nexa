@@ -1,37 +1,37 @@
 {
-  "name": "nexa",
-  "version": "1.0.0",
-  "description": "",
-  "main": "dist/index.js",
+  "name": "nexa-whatsapp-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node --transpile-only src/app.ts",
+    "dev:bot": "ts-node --transpile-only src/app.ts",
+    "dev:web": "npm --prefix web run dev",
+    "dev:all": "concurrently -k -n bot,web -c green,cyan \"npm:dev\" \"npm:web:dev\"",
+    "build": "tsc -p .",
+    "web:dev": "npm --prefix web run dev",
+    "web:build": "npm --prefix web run build",
+    "scaffold:command": "ts-node tools/scaffold-command.ts",
+    "start": "node dist/app.js",
+    "postinstall": "npm --prefix web install"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/razikdontcare/nexa.git"
-  },
-  "author": "razikdontcare",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/razikdontcare/nexa/issues"
-  },
-  "homepage": "https://github.com/razikdontcare/nexa#readme",
   "dependencies": {
-    "axios": "^1.11.0",
-    "baileys": "^6.7.18",
+    "@whiskeysockets/baileys": "^7.0.0-rc.2",
     "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "mongoose": "^8.17.1",
+    "dotenv": "^17.2.2",
+    "express": "^4.19.2",
+    "mongodb": "^6.19.0",
+    "pino": "^9.9.5",
+    "pino-pretty": "^13.1.1",
     "qrcode": "^1.5.4",
-    "winston": "^3.17.0"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
-    "@types/node": "^24.2.1",
+    "@types/node": "^24.3.1",
     "@types/qrcode": "^1.5.5",
-    "nodemon": "^3.1.10",
+    "concurrently": "^8.2.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
   }
